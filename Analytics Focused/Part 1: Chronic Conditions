@@ -1,0 +1,62 @@
+Part 1: Chronic Conditions (5 questions)
+
+--1. Patients with Other chronic sinusitis (Age 20-40 , Year 2024)--
+SELECT 
+  c.code, 
+  c.description, c.patient, p.birthdate
+FROM hospital-data-479701.Cleaned.conditions c
+JOIN hospital-data-479701.Cleaned.patients p ON c.patient = p.Id
+WHERE c.description = 'Other chronic sinusitis'
+  AND p.Birthdate BETWEEN '1974-01-01' AND '1995-12-31'
+GROUP BY c.code, c.description, c.patient, p.birthdate
+ORDER BY p.Birthdate
+;
+
+-- 2.Average healthcare expense for sinusitis variants --
+SELECT
+c.description AS condition_description,
+AVG(`Healthcare_Expenses`) as avg_expense
+FROM hospital-data-479701.Cleaned.patients p
+JOIN hospital-data-479701.Cleaned.conditions c on p.Id =c.patient
+Where c.description IN ('Other acute sinusitis','Other chronic sinusitis',
+      'Unspecified sinusitis (chronic)')
+GROUP BY c.description
+ORDER BY avg_expense DESC
+;
+
+-- 3. Immunization adherence among Patients with Chronic Conditions (Influenza vaccine (seasonal)  commented out for use) --
+SELECT 
+   c.code, 
+   c.description AS condition_description,
+   COALESCE(i.description, 'No Immunization') AS vaccine_description,
+   COUNT(DISTINCT i.patient) AS vaccinated_patients,
+   COUNT(DISTINCT c.patient) AS total_chronic_patients,
+   ROUND(
+       COUNT(DISTINCT i.patient) * 100.0 / COUNT(DISTINCT c.patient), 2
+   ) AS adherence_rate
+FROM hospital-data-479701.Cleaned.conditions c
+LEFT JOIN hospital-data-479701.Cleaned.immunizations i 
+    ON c.patient = i.patient
+      --AND i.description IN (
+    -- 'Seasonal Flu Vaccine', 
+  -- )
+GROUP BY c.code, c.description, i.description
+ORDER BY adherence_rate ASC
+;
+
+-- 4.Average age of chronic condition patients
+
+SELECT
+Round(Avg(EXTRACT(YEAR FROM DATE'2023-12-31') - EXTRACT (YEAR FROM p.Birthdate)), 0)  as Average_Age
+From hospital-data-479701.Cleaned.patients p
+JOIN hospital-data-479701.Cleaned.conditions c ON c.patient = p.id
+WHERE c.description LIKE '%chronic%' 
+
+-- 5. Encounters per renal disease (CKD stages and failures included)
+SELECT 
+  code, description,
+Count(encounter) AS encounters
+FROM hospital-data-479701.Cleaned.conditions
+WHERE CODE LIKE '%585%' 
+Group BY  code, description
+ORDER BY encounters desc;
