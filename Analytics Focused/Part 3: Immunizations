@@ -1,0 +1,81 @@
+Part 3: Immunizations and Conditions Insights (5 questions)
+
+--1. Most common immunization by age group. ---
+WITH ImmunizationCount AS (
+    SELECT 
+        i.code, 
+        i.description, 
+        COUNT(i.code) AS vaccine_count
+    FROM hospital-data-479701.Cleaned.immunizations i
+    GROUP BY i.code, i.description
+),
+ImmunizationAge AS (
+    SELECT 
+        i.code,
+        i.description,
+        i.patient,
+        CASE
+            WHEN DATE_DIFF(DATE(i.date), DATE(p.birthdate), YEAR) < 18 THEN 'Child'
+            WHEN DATE_DIFF(DATE(i.date), DATE(p.birthdate), YEAR) BETWEEN 18 AND 39 THEN 'Younger Adult'
+            WHEN DATE_DIFF(DATE(i.date), DATE(p.birthdate), YEAR) BETWEEN 40 AND 64 THEN 'Older Adult'
+            ELSE 'Senior'
+            END AS age_group 
+    FROM hospital-data-479701.Cleaned.immunizations i
+    JOIN hospital-data-479701.Cleaned.patients p ON i.patient = p.id
+)
+SELECT 
+    age_group,
+    description,
+    COUNT(*) AS immunization_count
+FROM ImmunizationAge 
+GROUP BY age_group, description
+QUALIFY ROW_NUMBER() OVER (PARTITION BY age_group ORDER BY COUNT(*) DESC) = 1
+ORDER BY age_group
+;
+
+--2. First recorded condition per patient.
+SELECT
+  patient,code, description,
+  Min(`start Date`) as earliest_condition
+From hospital-data-479701.Cleaned.conditions
+Group BY patient,code, description
+;
+
+--3. Immunization count per patient (Code 5302).
+SELECT
+  patient,
+  count(code) as immunization_count
+FROM hospital-data-479701.Cleaned.immunizations
+GROUP BY patient
+ORDER BY immunization_count desc
+;
+--4. Influenza Vaccine coverage (2023).
+ SELECT
+ i.Code, i.Description,
+ ROUND(
+    COUNT(DISTINCT i.patient) * 100.0 
+    / NULLIF((SELECT COUNT(DISTINCT Id) FROM hospital-data-479701.Cleaned.   patients), 0),
+    2 
+    ) AS coverage_rate
+From  hospital-data-479701.Cleaned.immunizations i
+Where EXTRACT(YEAR from i.`Date`) = 2023 And i.Code = 5302
+GROUP BY i.Code, i.description
+;  
+
+-- 5. Influenza vaccine coverage for sinusitis patients by gender (2023)
+SELECT
+  c.code, 
+  c.description as condition_description,
+  p.gender,
+ROUND(
+       COUNT(DISTINCT i.patient) * 100.0 / COUNT(DISTINCT c.patient), 2
+   ) AS vaccination_rate
+From hospital-data-479701.Cleaned.conditions c
+JOIN hospital-data-479701.Cleaned.patients p ON c.patient = p.Id
+LEFT JOIN hospital-data-479701.Cleaned.immunizations i 
+    ON c.patient = i.patient
+   AND i.description = 'Seasonal Flu Vaccine'
+   AND EXTRACT(YEAR FROM i.Date) = 2023
+GROUP BY c.code, c.description, p.gender
+ORDER BY vaccination_rate ASC
+;
