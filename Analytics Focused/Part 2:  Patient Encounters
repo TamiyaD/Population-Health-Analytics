@@ -1,0 +1,52 @@
+Part 2:  Patient Encounters (5 questions)
+--1. Diabetes mellitus prevalence percentage (code 250)
+SELECT 
+    ROUND(
+        COUNT(DISTINCT CASE WHEN c.code LIKE '%250%' THEN c.patient END) * 100.0 
+        / NULLIF(COUNT(DISTINCT p.Id), 0),
+        2
+    ) AS diabetes_prevalence_percentage
+FROM hospital-data-479701.Cleaned.conditions c
+JOIN hospital-data-479701.Cleaned.patients p ON c.patient = p.Id;
+
+-- 2. Total encounters per patient --
+SELECT
+  patient,
+  Count(DISTINCT Encounter) as encounters_number
+FROM hospital-data-479701.Cleaned.conditions c
+Group By patient
+Order By encounters_number desc
+;
+
+-- 3. Average claim cost per encounter class --
+SELECT
+  c.encounter,
+ AVG(p.`Healthcare_Expenses`) as average_ClaimCost
+From hospital-data-479701.Cleaned.conditions c
+JOIN hospital-data-479701.Cleaned.patients p on p.Id =c.patient
+Group By c.encounter
+Order By average_ClaimCost desc
+;
+
+-- 4. Encounters for patients with Heart Failure (code 428)
+SELECT 
+  patient, description,
+  COUNT(Distinct encounter) AS encounters
+FROM hospital-data-479701.Cleaned.conditions
+WHERE CODE LIKE '%428%' 
+Group BY patient, description
+--HAVING COUNT(DISTINCT encounter) > 2
+Order BY encounters desc;
+
+-- 5. Top 20 conditions per patient count (2023) --
+SELECT 
+    description as Top_Condtiions,
+    code,
+    COUNT(DISTINCT patient) AS patient_count
+FROM hospital-data-479701.Cleaned.conditions
+WHERE EXTRACT(YEAR FROM `Start Date`) = 2023
+  AND (`Stop Date` IS NULL OR EXTRACT(YEAR FROM `Stop Date`) >= EXTRACT(YEAR FROM CURRENT_TIMESTAMP()))
+Group By Code, description
+ORDER BY patient_count DESC limit 20
+;
+
