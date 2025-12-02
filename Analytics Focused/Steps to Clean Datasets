@@ -1,0 +1,6 @@
+How to Clean csv file in Excel or sheets before loading into Big Query
+  1. Remove nulls "\N": Go to Find and replace, type "\N" in find and leave replace blank
+  2. Fix rows: Merge all columns from the right of descriptions
+  3. Transform Date and time column into standard "xxxx-xx-xx hh:mm:ss"
+
+Want to Follow along in exploring the datasets?: https://TamiyainData.weebly.com
